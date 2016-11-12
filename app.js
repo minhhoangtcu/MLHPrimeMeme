@@ -11,7 +11,9 @@ const
   request = require('request'),
   Wit = require('node-wit').Wit,
   log = require('node-wit').log,
-  speeches = require('./speeches.js');
+  speeches = require('./speeches.js'),
+  alchemy = require('./alchemy.js'),
+  emotion = require('./emotion.js');
 
 /*
  * Get the secret tokens/keys
