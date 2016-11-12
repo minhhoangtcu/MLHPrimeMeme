@@ -15,16 +15,53 @@ const
 /*
  * Get the secret tokens/keys
  */
-const APP_SECRET = process.env.MESSENGER_APP_SECRET
-const VALIDATION_TOKEN = process.env.MESSENGER_VALIDATION_TOKEN
-const PAGE_ACCESS_TOKEN = process.env.MESSENGER_PAGE_ACCESS_TOKEN
-const SERVER_URL = process.env.SERVER_URL
+const APP_SECRET = process.env.MESSENGER_APP_SECRET;
+const VALIDATION_TOKEN = process.env.MESSENGER_VALIDATION_TOKEN;
+const PAGE_ACCESS_TOKEN = process.env.MESSENGER_PAGE_ACCESS_TOKEN;
+const SERVER_URL = process.env.SERVER_URL;
+const WIT_TOKEN = process.env.WIT_SERVER_TOKEN;
 
 var app = express();
 app.set('port', process.env.PORT);
 app.set('view engine', 'ejs');
 app.use(bodyParser.json({ verify: verifyRequestSignature }));
 app.use(express.static('public'));
+
+// ---------------------------------------------------------------------------
+// wit.ai Code
+
+const actions = {
+  send(request, response) {
+    const {sessionId, context, entities} = request;
+    const {text, quickreplies} = response;
+    return new Promise(function(resolve, reject) {
+      console.log('user said...', request.text);
+      console.log('sending...', JSON.stringify(response));
+      return resolve();
+    });
+  },
+};
+
+const wit = new Wit({
+  accessToken: WIT_TOKEN,
+  actions,
+  logger: new log.Logger(log.INFO)
+});
+
+/* Send message to bot
+ * 
+ * - mess: text to send to bot
+ * - context: previous context. JSON object.
+ */
+function sendMessToBot(mess, context) {
+	console.log("SEND BOT: ", mess);
+	return wit.message(mess, context)
+}
+
+
+
+// ---------------------------------------------------------------------------
+// Messenger Code
 
 app.get('/webhook', function(req, res) {
   if (req.query['hub.mode'] === 'subscribe' &&
@@ -109,7 +146,16 @@ function receivedMessage(event) {
         break;
 
       default:
-        sendTextMessage(senderID, messageText);
+
+      	sendMessToBot(messageText)
+      	.then((data) => {
+      		console.log(data);
+      	})
+      	.catch((error) =>{
+      		console.log(error);
+      	});
+
+        sendTextMessage(senderID, messageText); // echo back
     }
   } else if (messageAttachments) {
     sendTextMessage(senderID, "Message with attachment received");
