@@ -22,11 +22,4 @@ function getEmotionFromImage(url) {
 	});
 }
 
-getEmotionFromImage('https://scontent.xx.fbcdn.net/v/t1.0-9/14642172_10154063485737358_7879666446566034790_n.jpg?oh=ea867ab487ac2c87c41a1e7c941818da&oe=58944FD7')
-.then( (data) =>{
-	console.log(data);
-}).catch( (error) => {
-	console.log(error);
-});
-
 exports.getEmotionFromImage = getEmotionFromImage;

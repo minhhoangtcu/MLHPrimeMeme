@@ -1,5 +1,6 @@
 let Clarifai = require('clarifai');
 
+// TODO: can you hide all your keys.... :(
 let clientId = 'NhJeIZ_rTZenBuYEqP9i3zDuhGWC3jJMynEjiPIj';
 let clientSecret = 'Kz2yNlKMp-Ykd8Jjmen2F1qGSiqNSDiN3pErIn58';
 
