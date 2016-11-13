@@ -116,7 +116,37 @@ function getSentiment(senderID, facebookToken) {
 // Routes for Jibo
 
 app.post('/greet', (req, res) => {
-  res.send({text: 'poop'});
+
+  let messageText = req.body.greet;
+
+  console.log(req.body);
+
+  sendMessToBot(messageText)
+  .then((data) => {
+
+    let intent = data.entities.intent[0].value;
+
+    switch (intent) {
+      case 'welcome':
+        if (currentHappiness != 0 && currentHappiness < 0.4) {
+          res.send({type: "text", data: speeches.getRandomCheer(0)});
+        } else if (currentHappiness != 0) {
+          res.send({type: "text", data: speeches.getRandomCelebration(0)});
+        } else {
+          res.send({type: "text", data: "Welcome home!"});
+        }
+        break;
+
+      default:
+        res.send({type: "error"});
+    }
+
+    res.status(200)
+  })
+  .catch((error) =>{
+    console.log(error);
+  });
+
 })
 
 // ---------------------------------------------------------------------------
@@ -218,7 +248,7 @@ function receivedMessage(event) {
               sendTextMessage(senderID, post);
             });  
           }, 500);
-          
+
         }
         break;
 
