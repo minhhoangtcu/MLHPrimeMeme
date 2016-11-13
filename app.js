@@ -14,7 +14,9 @@ const
   speeches = require('./speeches.js'),
   alchemy = require('./alchemy.js'),
   emotion = require('./emotion.js'),
-  clarifai = require('./clarifai.js');
+  clarifai = require('./clarifai.js'),
+  graph = require('./facebook').graph,
+  fbCollect = require('./facebook-collect.js');
 
 /*
  * Get the secret tokens/keys
@@ -37,8 +39,7 @@ app.use(express.static('public'));
 /*
  * Set up routes
  */
-const facebookRoutes = require('./facebook');
-const facebookToken = facebookRoutes.accessToken;
+const facebookRoutes = require('./facebook').router;
 app.use('/', facebookRoutes);
 
 // ---------------------------------------------------------------------------
@@ -75,7 +76,20 @@ function sendMessToBot(mess, context) {
 // ---------------------------------------------------------------------------
 // Facebook Collecting Code
 
-// facebookRoutes.getPostsOfUser
+app.get('/loggedIn', (req, res) => {
+  // serve an auto close page
+  res.send('Successfully Logged In!!!');
+
+  let senderID = req.query.senderID;
+  sendTextMessage(senderID, "Sucessfully logged in!")
+});
+
+// ---------------------------------------------------------------------------
+// Routes for Jibo
+
+app.post('/greet', (req, res) => {
+  res.send({text: 'poop'});
+})
 
 // ---------------------------------------------------------------------------
 // Messenger Code
@@ -159,6 +173,22 @@ function receivedMessage(event) {
     // the text we received.
     switch (messageText) {
       case 'help':
+
+        break;
+
+      case 'collect':
+
+        const facebookToken = graph.getAccessToken();
+        console.log("> ", facebookToken);
+
+        if (facebookToken) {
+
+          fbCollect.getPostsOfUser(facebookToken)
+          .then((data) => console.log(data));
+
+        } else {
+          sendTextMessage(senderID, "Please click this link to allow us to use your Facebook posts and images: " + process.env.FACEBOOK_LOGIN_URL + "?senderID=" + senderID)
+        }
 
         break;
 

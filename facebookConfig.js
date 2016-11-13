@@ -3,4 +3,4 @@ const facebookConfig = {
     redirect_uri:   'https://7f97b0a3.ngrok.io/auth/facebook'
 }
 
-exports.facebookConfig = facebookConfig 
+exports.facebookConfig = facebookConfig
