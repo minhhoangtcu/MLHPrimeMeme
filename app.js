@@ -92,6 +92,9 @@ app.get('/loggedIn', (req, res) => {
   sendTextMessage(senderID, "Sucessfully logged in!")
 
   const facebookToken = graph.getAccessToken();
+
+  console.log("> Token: ", facebookToken);
+  
   getSentiment(senderID, facebookToken);
   getImages(senderID, facebookToken);
 });

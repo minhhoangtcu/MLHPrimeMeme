@@ -1,13 +1,13 @@
 const FB = require('fb');
 
-var	accessToken = 'EAACEdEose0cBAJAe6KCTJ0nL73NnDJhMXSk8ZCSZAE0RdemwQaOw4wIMZBWMIIoQy8vqdQthdVeUvzWH69lNkJZAZBHJkS7R86cP6eZCRZAB8lp72osQrxNEjBZCKA6ZA0omzpUwhVUphzvbdriLRkDEraNpKq3O9rRFMU1BMVaymIQZDZD'
-
 function getPhotosLink (accessToken, size) {
 	return new Promise((resolve, reject) => {
 		getPhotosID(accessToken, size).then((ids) => {
 			var promises = []
 			ids.forEach((id) => {
-				promises.push(getAPhoto(accessToken, id))
+				promises.push(getAPhoto(accessToken, id).then((data) => {
+					console.log(data)
+				}))
 			})
 			Promise.all(promises).then((data) => {
 				resolve(data)
@@ -46,7 +46,7 @@ function getAPhoto(accessToken, id) {
 			id,
 			function (response) {
 				if (response && !response.error) {
-					// console.log(response.images[0].source)
+					console.log(response)
 					resolve(response.images[0].source);
 				} else {
 					reject(response.error);
@@ -55,8 +55,6 @@ function getAPhoto(accessToken, id) {
 		);
 	})	
 }
-
-
 
 function getPostsOfUser (accessToken, size) {
 	return new Promise((resolve, reject) => {
@@ -83,7 +81,7 @@ function getPostsOfUser (accessToken, size) {
 exports.getPostsOfUser = getPostsOfUser;
 exports.getPhotosLink = getPhotosLink;
 
-// getPhotosLink(accessToken, 10).then((data) => console.log(data));
-// getPhotosID(accessToken, 10).then((data) => console.log(data));
-// getAPhoto(accessToken, "1054981821244385").then((data) => console.log(data));
+// getPhotosLink("EAAZA3zZCpZCS0IBAOy2WUzawEwMcDbgQNQx9ojJkXIAJd4ymOwNyTZBOerTiqMTBuu3LBzTf3a9Gvayz8zbfSATxNDc4ZAvv97j1qZAGPWs8yH5H7X73w9dsn7UX0dxDI8S6Y1ZBqRZCbB0whgqHRAKjDbl7D92BZCpoZD", 10).then((data) => console.log(data));
+// getPhotosID("EAAZA3zZCpZCS0IBAOy2WUzawEwMcDbgQNQx9ojJkXIAJd4ymOwNyTZBOerTiqMTBuu3LBzTf3a9Gvayz8zbfSATxNDc4ZAvv97j1qZAGPWs8yH5H7X73w9dsn7UX0dxDI8S6Y1ZBqRZCbB0whgqHRAKjDbl7D92BZCpoZD", 10).then((data) => console.log(data));
+getAPhoto("EAACEdEose0cBAJAe6KCTJ0nL73NnDJhMXSk8ZCSZAE0RdemwQaOw4wIMZBWMIIoQy8vqdQthdVeUvzWH69lNkJZAZBHJkS7R86cP6eZCRZAB8lp72osQrxNEjBZCKA6ZA0omzpUwhVUphzvbdriLRkDEraNpKq3O9rRFMU1BMVaymIQZDZD", "10207063282373454").then((data) => console.log(data));
 // getPosts(accessToken, 10).then((data) => console.log(data));
