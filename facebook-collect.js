@@ -10,7 +10,6 @@ function getPhotosLink(accessToken, size) {
 			'GET',
 			{"fields":`id,name,photos.limit(${size}){link}`},
 			function(response) {
-				console.log(response);
 				if (!response || response.error) {
 					reject(response.error);
 				} else {
