@@ -1,40 +1,51 @@
-const RapidAPI = new require('rapidapi-connect');
-const rapid = new RapidAPI('JiboUp', '9bb11e09-8d1f-41b8-8901-6871186bf5eb');
+const FB = require('fb');
 
-function getPostsOfUser(accessToken, size) {
+//var	accessToken = 'EAACEdEose0cBAI45IL2dnC7jwAyAh1gW6JRFDW1WZBz1lxGiurlAclfLelfcVBawJ5GZBqZCv2Iw09dSUco0PotfZAhrLMFg44A4qi5NiMZBc0tuUV2cXDtpSm7LiHOmVmc42ZCAqAuSxkt01ZCT3kgwdZBMUWwS25VYLfkPXup6YgZDZD'
 
+function getPhotosLink(accessToken, size) {
 	return new Promise((resolve, reject) => {
-
-	posts = []
-	getTimeline(accessToken)
-	.then( (timeline) => {
-		timelineJson = JSON.parse(timeline).data
-
-		// filter out non mess and use mess
-		resolve( timelineJson
-					.slice(0, size)
-					.filter((post) => post.message)
-					.map((post) => post.message)
-		)
-
-	}).catch( (error) => {
-		console.log(error);
-	});
-})}
-
-function getTimeline(accessToken) {
-	return new Promise((resolve, reject) => {
-		rapid.call('FacebookGraphAPI', 'getUsersFeed', { 
-			'access_token': accessToken,
-			'user_id': ''
-		}).on('success', (payload)=>{
-			console.log("yeh success")
-			resolve(payload)
-		}).on('error', (payload)=>{
-			console.log("o no failed")
-			reject(payload)
-		})
+		FB.options({accessToken: accessToken});
+		FB.api(
+			'/me',
+			'GET',
+			{"fields":`id,name,photos.limit(${size}){link}`},
+			function(response) {
+				console.log(response);
+				if (!response || response.error) {
+					reject(response.error);
+				} else {
+					resolve(response.photos.data.map((photo) => photo.link));
+				}
+			}
+		);
 	})
 }
 
-exports.getPostsOfUser = getPostsOfUser;
+function getPosts(accessToken, size) {
+	return new Promise((resolve, reject) => {
+		FB.options({accessToken: accessToken});
+		FB.api(
+			'/me',
+			'GET',
+			{"fields":`id,name,posts.limit(${size})`},
+			function(response) {
+				if (!response || response.error) {
+					reject(response.error);
+				} else {
+					resolve(
+						response.posts.data
+						.filter( (post) => post.message)
+						.map((post) => post.message)
+					)
+				}
+			}
+		);
+	})
+}
+
+exports.getPostsOfUser = getPosts;
+exports.getPhotosLink = getPhotosLink;
+
+
+// getPhotosLink(accessToken, 10).then((data) => console.log(data));
+// getPosts(accessToken, 10).then((data) => console.log(data));
