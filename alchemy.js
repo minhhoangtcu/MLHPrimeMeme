@@ -12,9 +12,35 @@ function getEmotion(text) {
 		if (err)
 			reject(err);
 		else
-			resolve(JSON.stringify(response.docEmotions, null, 2));
+			resolve(response.docEmotions, null, 2);
 		});
 	});
 }
 
+function getEmotionFromAll(arrayOfTexts) {
+	return new Promise( (resolve, reject) => {
+
+		var sentiments = [];
+
+		arrayOfTexts.forEach((text) => {
+			sentiments.push(getEmotion(text));
+		});
+
+		Promise.all(sentiments) // after this we get an array of JSON
+		.then((data) => {
+			let sum = data.map((sentiment) => sentiment.joy)
+							  .reduce((acc, cur) => parseFloat(acc) + parseFloat(cur));
+			resolve(sum / data.length);
+		})
+		.catch((error) => {
+			reject(error);
+		});
+
+	});
+}
+
+getEmotionFromAll(["cac", "buoi", "muoi nhu lin", "xuan quach"])
+.then(data => console.log(data))
+
 exports.getEmotion = getEmotion;
+exports.getEmotionFromAll = getEmotionFromAll;
