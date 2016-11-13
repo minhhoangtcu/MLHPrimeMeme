@@ -1,27 +1,64 @@
 const FB = require('fb');
 
-//var	accessToken = 'EAACEdEose0cBAI45IL2dnC7jwAyAh1gW6JRFDW1WZBz1lxGiurlAclfLelfcVBawJ5GZBqZCv2Iw09dSUco0PotfZAhrLMFg44A4qi5NiMZBc0tuUV2cXDtpSm7LiHOmVmc42ZCAqAuSxkt01ZCT3kgwdZBMUWwS25VYLfkPXup6YgZDZD'
+var	accessToken = 'EAACEdEose0cBAJAe6KCTJ0nL73NnDJhMXSk8ZCSZAE0RdemwQaOw4wIMZBWMIIoQy8vqdQthdVeUvzWH69lNkJZAZBHJkS7R86cP6eZCRZAB8lp72osQrxNEjBZCKA6ZA0omzpUwhVUphzvbdriLRkDEraNpKq3O9rRFMU1BMVaymIQZDZD'
 
-function getPhotosLink(accessToken, size) {
+function getPhotosLink (accessToken, size) {
+	return new Promise((resolve, reject) => {
+		getPhotosID(accessToken, size).then((ids) => {
+			var promises = []
+			ids.forEach((id) => {
+				promises.push(getAPhoto(accessToken, id))
+			})
+			Promise.all(promises).then((data) => {
+				resolve(data)
+			}).catch((error) => {
+				reject(error)
+			})
+		})
+	})
+}
+
+function getPhotosID(accessToken, size) {
 	return new Promise((resolve, reject) => {
 		FB.options({accessToken: accessToken});
 		FB.api(
 			'/me',
 			'GET',
-			{"fields":`id,name,photos.limit(${size}){link}`},
+			{"fields":`photos.limit(${size}){id}`},
 			function(response) {
-				console.log(response);
-				if (!response || response.error) {
-					reject(response.error);
+				if (response && !response.error) {
+					resolve(
+						response.photos.data
+						.map((image) => image.id)
+					);
 				} else {
-					resolve(response.photos.data.map((photo) => photo.link));
+					reject(response.error);
 				}
 			}
 		);
 	})
 }
 
-function getPosts(accessToken, size) {
+function getAPhoto(accessToken, id) {
+	return new Promise((resolve, reject) => {
+		FB.options({accessToken: accessToken});
+		FB.api(
+			id,
+			function (response) {
+				if (response && !response.error) {
+					// console.log(response.images[0].source)
+					resolve(response.images[0].source);
+				} else {
+					reject(response.error);
+				}
+			}
+		);
+	})	
+}
+
+
+
+function getPostsOfUser (accessToken, size) {
 	return new Promise((resolve, reject) => {
 		FB.options({accessToken: accessToken});
 		FB.api(
@@ -43,9 +80,10 @@ function getPosts(accessToken, size) {
 	})
 }
 
-exports.getPostsOfUser = getPosts;
+exports.getPostsOfUser = getPostsOfUser;
 exports.getPhotosLink = getPhotosLink;
 
-
 // getPhotosLink(accessToken, 10).then((data) => console.log(data));
+// getPhotosID(accessToken, 10).then((data) => console.log(data));
+// getAPhoto(accessToken, "1054981821244385").then((data) => console.log(data));
 // getPosts(accessToken, 10).then((data) => console.log(data));
