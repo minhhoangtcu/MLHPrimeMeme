@@ -25,11 +25,21 @@ const PAGE_ACCESS_TOKEN = process.env.MESSENGER_PAGE_ACCESS_TOKEN;
 const SERVER_URL = process.env.SERVER_URL;
 const WIT_TOKEN = process.env.WIT_SERVER_TOKEN;
 
+/*
+ * Set up server
+ */
 var app = express();
 app.set('port', process.env.PORT);
 app.set('view engine', 'ejs');
 app.use(bodyParser.json({ verify: verifyRequestSignature }));
 app.use(express.static('public'));
+
+/*
+ * Set up routes
+ */
+const facebookRoutes = require('./facebook');
+const facebookToken = facebookRoutes.accessToken;
+app.use('/', facebookRoutes);
 
 // ---------------------------------------------------------------------------
 // wit.ai Code
@@ -62,7 +72,10 @@ function sendMessToBot(mess, context) {
 	return wit.message(mess, context)
 }
 
+// ---------------------------------------------------------------------------
+// Facebook Collecting Code
 
+// facebookRoutes.getPostsOfUser
 
 // ---------------------------------------------------------------------------
 // Messenger Code
