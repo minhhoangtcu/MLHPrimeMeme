@@ -14,7 +14,9 @@ const
   speeches = require('./speeches.js'),
   alchemy = require('./alchemy.js'),
   emotion = require('./emotion.js'),
-  clarifai = require('./clarifai.js');
+  clarifai = require('./clarifai.js'),
+  graph = require('./facebook').graph,
+  fbCollect = require('./facebook-collect.js');
 
 /*
  * Get the secret tokens/keys
@@ -25,11 +27,26 @@ const PAGE_ACCESS_TOKEN = process.env.MESSENGER_PAGE_ACCESS_TOKEN;
 const SERVER_URL = process.env.SERVER_URL;
 const WIT_TOKEN = process.env.WIT_SERVER_TOKEN;
 
+/*
+ * Set up server
+ */
 var app = express();
 app.set('port', process.env.PORT);
 app.set('view engine', 'ejs');
 app.use(bodyParser.json({ verify: verifyRequestSignature }));
 app.use(express.static('public'));
+
+/*
+ * Set up routes
+ */
+const facebookRoutes = require('./facebook').router;
+app.use('/', facebookRoutes);
+
+/* 
+ * Container variables
+ */
+ var recentPosts = [];
+ var currentHappiness = 0;
 
 // ---------------------------------------------------------------------------
 // wit.ai Code
@@ -62,7 +79,45 @@ function sendMessToBot(mess, context) {
 	return wit.message(mess, context)
 }
 
+// ---------------------------------------------------------------------------
+// Facebook Collecting Code
 
+app.get('/loggedIn', (req, res) => {
+  // serve an auto close page
+  res.send('Successfully Logged In!!!');
+
+  let senderID = req.query.senderID;
+  sendTextMessage(senderID, "Sucessfully logged in!")
+
+  const facebookToken = graph.getAccessToken();
+  getSentiment(senderID, facebookToken);
+});
+
+function getSentiment(senderID, facebookToken) {
+
+  sendTextMessage(senderID, "Please wait for Jibo to collect your data.");
+
+  fbCollect.getPostsOfUser(facebookToken, 5)
+  .then((data) => {
+    sendTextMessage(senderID, "I have finished collecting your Facebook posts and images!");
+
+    // Store in global
+    recentPosts = data;
+    console.log(recentPosts);
+
+    alchemy.getEmotionFromAll(data)
+    .then((average) => currentHappiness = average)
+    .catch((error) => console.log("Cannot get sentiment from texts: ", error));
+
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Routes for Jibo
+
+app.post('/greet', (req, res) => {
+  res.send({text: 'poop'});
+})
 
 // ---------------------------------------------------------------------------
 // Messenger Code
@@ -141,11 +196,42 @@ function receivedMessage(event) {
 
   if (messageText) {
 
+    const facebookToken = graph.getAccessToken();
+
     // If we receive a text message, check to see if it matches any special
     // keywords and send back the corresponding example. Otherwise, just echo
     // the text we received.
     switch (messageText) {
+      case 'happiness':
+        if (currentHappiness != 0) {
+          sendTextMessage(senderID, "Current happniess: " + currentHappiness);
+        }
+        break;
+
+      case 'recent':
+        if (recentPosts.length != 0) {
+
+          sendTextMessage(senderID, "Here are your most three recent posts");
+
+          setTimeout(() => {
+            recentPosts.slice(0,3).forEach( (post) => {
+              sendTextMessage(senderID, post);
+            });  
+          }, 500);
+          
+        }
+        break;
+
       case 'help':
+
+        break;
+
+      case 'collect':
+        if (facebookToken) {
+          getSentiment(senderID, facebookToken);
+        } else {
+          sendTextMessage(senderID, "Please click this link to allow us to use your Facebook posts and images: " + process.env.FACEBOOK_LOGIN_URL + "?senderID=" + senderID)
+        }
 
         break;
 
