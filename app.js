@@ -42,6 +42,12 @@ app.use(express.static('public'));
 const facebookRoutes = require('./facebook').router;
 app.use('/', facebookRoutes);
 
+/* 
+ * Container variables
+ */
+ var recentPosts = [];
+ var currentHappiness = 0;
+
 // ---------------------------------------------------------------------------
 // wit.ai Code
 
@@ -89,14 +95,20 @@ app.get('/loggedIn', (req, res) => {
 
 function getSentiment(senderID, facebookToken) {
 
-  sendTextMessage(senderID, "Please wait for Jibo to collect your data.")
+  sendTextMessage(senderID, "Please wait for Jibo to collect your data.");
 
-  fbCollect.getPostsOfUser(facebookToken)
+  fbCollect.getPostsOfUser(facebookToken, 5)
   .then((data) => {
-    sendTextMessage(senderID, "I have finished collecting your Facebook posts and images!")
+    sendTextMessage(senderID, "I have finished collecting your Facebook posts and images!");
 
-    
-    
+    // Store in global
+    recentPosts = data;
+    console.log(recentPosts);
+
+    alchemy.getEmotionFromAll(data)
+    .then((average) => currentHappiness = average)
+    .catch((error) => console.log("Cannot get sentiment from texts: ", error));
+
   });
 }
 
@@ -184,19 +196,37 @@ function receivedMessage(event) {
 
   if (messageText) {
 
+    const facebookToken = graph.getAccessToken();
+
     // If we receive a text message, check to see if it matches any special
     // keywords and send back the corresponding example. Otherwise, just echo
     // the text we received.
     switch (messageText) {
+      case 'happiness':
+        if (currentHappiness != 0) {
+          sendTextMessage(senderID, "Current happniess: " + currentHappiness);
+        }
+        break;
+
+      case 'recent':
+        if (recentPosts.length != 0) {
+
+          sendTextMessage(senderID, "Here are your most three recent posts");
+
+          setTimeout(() => {
+            recentPosts.slice(0,3).forEach( (post) => {
+              sendTextMessage(senderID, post);
+            });  
+          }, 500);
+          
+        }
+        break;
+
       case 'help':
 
         break;
 
       case 'collect':
-
-        const facebookToken = graph.getAccessToken();
-        console.log("> ", facebookToken);
-
         if (facebookToken) {
           getSentiment(senderID, facebookToken);
         } else {

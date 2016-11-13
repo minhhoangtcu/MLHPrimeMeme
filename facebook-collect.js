@@ -1,7 +1,7 @@
 const RapidAPI = new require('rapidapi-connect');
 const rapid = new RapidAPI('JiboUp', '9bb11e09-8d1f-41b8-8901-6871186bf5eb');
 
-function getPostsOfUser(accessToken) {
+function getPostsOfUser(accessToken, size) {
 
 	return new Promise((resolve, reject) => {
 
@@ -12,7 +12,7 @@ function getPostsOfUser(accessToken) {
 
 		// filter out non mess and use mess
 		resolve( timelineJson
-					.slice(0, 20)
+					.slice(0, size)
 					.filter((post) => post.message)
 					.map((post) => post.message)
 		)

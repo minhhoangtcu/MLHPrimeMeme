@@ -39,8 +39,4 @@ function getEmotionFromAll(arrayOfTexts) {
 	});
 }
 
-getEmotionFromAll(["cac", "buoi", "muoi nhu lin", "xuan quach"])
-.then(data => console.log(data))
-
-exports.getEmotion = getEmotion;
 exports.getEmotionFromAll = getEmotionFromAll;
