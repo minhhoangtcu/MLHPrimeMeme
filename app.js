@@ -49,6 +49,7 @@ app.use('/', facebookRoutes);
  var recentPosts = [];
  var recentImagesLinks = [];
  var currentHappiness = 0;
+ var recentAttachment = "";
 
 // ---------------------------------------------------------------------------
 // wit.ai Code
@@ -123,7 +124,7 @@ function getImages(senderID, facebookToken) {
     sendTextMessage(senderID, "I have finished collecting your Facebook images!");
 
     recentImagesLinks = links;
-    // console.log(JSON.stringify(recentImagesLinks, null, 2));
+    console.log(JSON.stringify(recentImagesLinks, null, 2));
 
   })
   .catch((error) => {
@@ -143,13 +144,20 @@ app.post('/greet', (req, res) => {
   sendMessToBot(messageText)
   .then((data) => {
 
-    let intent = data.entities.intent[0].value;
-    console.log("Intent from FB: ", intent);
+    let intent = "";
+    if (data.entities.intent) {
+      intent = data.entities.intent[0].value;
+      console.log("Intent from FB: ", intent);
+    } else {
+      console.log("No intent from: ", messageText);
+    }
 
     switch (intent) {
       case 'welcome':
         // get concepts to prepare for response
         clarifai.getConcepts();
+
+        console.log("> send welcome");
 
         // response
         if (currentHappiness != 0 && currentHappiness < 0.4) {
@@ -163,11 +171,27 @@ app.post('/greet', (req, res) => {
 
       case 'joke':
 
+        console.log("> send joke");
+
         jokes.getJoke()
         .then((joke) => {
-          res.send({type: "text", data: joke});
+          res.send({type: "joke", data: joke});
         }).catch((error) => {
           console.log(error);
+        });
+
+        break;
+
+      case 'image':
+
+        console.log("> send image");
+
+        let imageAllData = [emotion.getEmotionFromImage(recentAttachment),
+                            clarifai.getConcepts(recentAttachment)];
+
+        Promise.all(imageAllData).then((data) => {
+          let saying = "Good luck in your " + data[1][0];
+          res.send({type: "text", data: saying});
         });
 
         break;
@@ -289,10 +313,40 @@ function receivedMessage(event) {
 
       case 'help':
 
+        sendTextMessage(senderID,
+        "collect - request user's permission\n" +
+        "happiness - show current happiness level\n" +
+        "recent - show recent posts");
+
         break;
 
       case 'commentimage':
-        send
+
+        if (recentImagesLinks.length != 0) {
+
+          let imageUrl = recentImagesLinks[0];
+
+          console.log(recentImagesLinks);
+
+          let imageAllData = [emotion.getEmotionFromImage(imageUrl),
+                              clarifai.getConcepts(imageUrl)];
+
+          Promise.all(imageAllData).then((data) => {
+
+
+            sendImageMessage(sender, imageUrl);
+
+            if (data[0][0]) {
+              sendTextMessage(senderID, "Happiness level: " + data[0][0]);
+            } else {
+              sendTextMessage(senderID, "Jibo failed to analyze the sentiment of the photo. Jibo is sorry.");
+            }
+
+            let hashes = `Hashes: ${data[1][0]} ${data[1][1]} ${data[1][2]} ${data[1][3]}`
+            sendTextMessage(senderID, hashes)
+          });
+        }
+
         break;
 
       case 'collect':
@@ -322,14 +376,15 @@ function receivedMessage(event) {
   } else if (messageAttachments) {
 
   	let imageUrl = messageAttachments[0]['payload']['url'];
+    recentAttachment = imageUrl;
   	let imageAllData = [emotion.getEmotionFromImage(imageUrl),
   						clarifai.getConcepts(imageUrl)];
 
   	Promise.all(imageAllData).then((data) => {
-  		console.log(data);
+  		console.log("Good luck in your " + data[1][0]);
+      sendTextMessage(senderID, "I got your image!")
   	});
 
-    // sendTextMessage(senderID, "Message with attachment received");
   }
 }
 
