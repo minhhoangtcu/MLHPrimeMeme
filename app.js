@@ -16,7 +16,8 @@ const
   emotion = require('./emotion.js'),
   clarifai = require('./clarifai.js'),
   graph = require('./facebook').graph,
-  fbCollect = require('./facebook-collect.js');
+  fbCollect = require('./facebook-collect.js'),
+  jokes = require('./jokes.js');
 
 /*
  * Get the secret tokens/keys
@@ -46,6 +47,7 @@ app.use('/', facebookRoutes);
  * Container variables
  */
  var recentPosts = [];
+ var recentImagesLinks = [];
  var currentHappiness = 0;
 
 // ---------------------------------------------------------------------------
@@ -91,6 +93,7 @@ app.get('/loggedIn', (req, res) => {
 
   const facebookToken = graph.getAccessToken();
   getSentiment(senderID, facebookToken);
+  getImages(senderID, facebookToken);
 });
 
 function getSentiment(senderID, facebookToken) {
@@ -99,7 +102,7 @@ function getSentiment(senderID, facebookToken) {
 
   fbCollect.getPostsOfUser(facebookToken, 5)
   .then((data) => {
-    sendTextMessage(senderID, "I have finished collecting your Facebook posts and images!");
+    sendTextMessage(senderID, "I have finished collecting your Facebook posts!");
 
     // Store in global
     recentPosts = data;
@@ -110,6 +113,23 @@ function getSentiment(senderID, facebookToken) {
     .catch((error) => console.log("Cannot get sentiment from texts: ", error));
 
   });
+}
+
+function getImages(senderID, facebookToken) {
+
+  // collect images
+  fbCollect.getPhotosLink(facebookToken, 10)
+  .then((links) => {
+    sendTextMessage(senderID, "I have finished collecting your Facebook images!");
+
+    recentImagesLinks = links;
+    console.log(JSON.stringify(recentImagesLinks, null, 2));
+
+  })
+  .catch((error) => {
+    console.log(error);
+  });
+
 }
 
 // ---------------------------------------------------------------------------
@@ -128,6 +148,10 @@ app.post('/greet', (req, res) => {
 
     switch (intent) {
       case 'welcome':
+        // get concepts to prepare for response
+        clarifai.getConcepts();
+
+        // response
         if (currentHappiness != 0 && currentHappiness < 0.4) {
           res.send({type: "text", data: speeches.getRandomCheer(0)});
         } else if (currentHappiness != 0) {
@@ -135,6 +159,17 @@ app.post('/greet', (req, res) => {
         } else {
           res.send({type: "text", data: "Welcome home!"});
         }
+        break;
+
+      case 'joke':
+
+        jokes.getJoke()
+        .then((joke) => {
+          res.send({type: "text", data: joke});
+        }).catch((error) => {
+          console.log(error);
+        });
+
         break;
 
       default:
@@ -257,7 +292,9 @@ function receivedMessage(event) {
         break;
 
       case 'collect':
+
         if (facebookToken) {
+          getImages(senderID, facebookToken);
           getSentiment(senderID, facebookToken);
         } else {
           sendTextMessage(senderID, "Please click this link to allow us to use your Facebook posts and images: " + process.env.FACEBOOK_LOGIN_URL + "?senderID=" + senderID)
