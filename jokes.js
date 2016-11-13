@@ -30,4 +30,6 @@ function getJoke(){
 		return getYoMama()
 }
 
+// getJoke().then((data) => console.log(data))
+
 exports.getJoke = getJoke;

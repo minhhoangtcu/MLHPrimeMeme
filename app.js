@@ -161,6 +161,17 @@ app.post('/greet', (req, res) => {
         }
         break;
 
+      case 'joke':
+
+        jokes.getJoke()
+        .then((joke) => {
+          res.send({type: "text", data: joke});
+        }).catch((error) => {
+          console.log(error);
+        });
+
+        break;
+
       default:
         res.send({type: "error"});
     }
