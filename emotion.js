@@ -14,8 +14,8 @@ function getEmotionFromImage(url) {
 		'subscriptionKey': MICROSOFT_EMOTION_KEY
  
 		}).on('success', (payload) => {
-			// return the average of happiness of all the faces
-			resolve( (payload.map(face => face.scores.happiness).reduce( (acc, cur) => acc + cur, 0)) / payload.length);
+			let average = (payload.map(face => face.scores.happiness).reduce( (acc, cur) => acc + cur, 0)) / payload.length;
+			resolve( average );
 		}).on('error', (payload) => {
 			reject(payload);
 		});

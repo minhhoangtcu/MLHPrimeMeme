@@ -13,7 +13,8 @@ const
   log = require('node-wit').log,
   speeches = require('./speeches.js'),
   alchemy = require('./alchemy.js'),
-  emotion = require('./emotion.js');
+  emotion = require('./emotion.js'),
+  clarifai = require('./clarifai.js');
 
 /*
  * Get the secret tokens/keys
@@ -144,15 +145,16 @@ function receivedMessage(event) {
     // keywords and send back the corresponding example. Otherwise, just echo
     // the text we received.
     switch (messageText) {
-      case 'image':
-        sendImageMessage(senderID);
+      case 'help':
+
         break;
 
       default:
 
       	sendMessToBot(messageText)
       	.then((data) => {
-      		console.log(data);
+      		let intent = data.entities.intent[0].value;
+      		console.log(JSON.stringify(data, null, 2));
       	})
       	.catch((error) =>{
       		console.log(error);
@@ -161,7 +163,16 @@ function receivedMessage(event) {
         sendTextMessage(senderID, messageText); // echo back
     }
   } else if (messageAttachments) {
-    sendTextMessage(senderID, "Message with attachment received");
+
+  	let imageUrl = messageAttachments[0]['payload']['url'];
+  	let imageAllData = [emotion.getEmotionFromImage(imageUrl),
+  						clarifai.getConcepts(imageUrl)];
+
+  	Promise.all(imageAllData).then((data) => {
+  		console.log(data);
+  	});
+
+    // sendTextMessage(senderID, "Message with attachment received");
   }
 }
 
@@ -258,5 +269,5 @@ function verifyRequestSignature(req, res, buf) {
 // certificate authority.
 app.listen(app.get('port'), function() {
 	console.log('Node app is running on port', app.get('port'));
-  // printDebugInfo();
+  	// printDebugInfo();
 });
