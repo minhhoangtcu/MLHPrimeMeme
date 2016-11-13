@@ -1,13 +1,19 @@
 const FB = require('fb');
 
+//EAAZA3zZCpZCS0IBAORgqOMSOafhvvZCk3BFVgfYUtlc1nfWtTUKhdp4OvUaTY4a7eZALaAdXpIgUYGmqQ3VBmbKqlGnEOuplZCBZAGZCn3kzZAb8xAfZAge7s9cUluV1uharOnBAJDXucX3ZBavpZB7ydEdgGiZBplXa60hgZD
+
+var	accessToken = 'EAACEdEose0cBAAGBHkyjDvy1Bkv2MMmjaPghwif125tLChs5RrPml8Vg3t88VhuKZCAGQaL5mMZBvrcr1Ely6cMgjn61IoTxKhEr9LLBfXBGqOYXqZBZAFY9gHtCpCKyMLk604Jurg53Sop8v5Q7EBHlDZAkX0cRumjRx9J075wZDZD'
+
 function getPhotosLink (accessToken, size) {
 	return new Promise((resolve, reject) => {
-		getPhotosID(accessToken, size).then((ids) => {
+		getPhotoIDs(accessToken, size).then((ids) => {
 			var promises = []
 			ids.forEach((id) => {
-				promises.push(getAPhoto(accessToken, id).then((data) => {
-					console.log(data)
-				}))
+				promises.push(getAPhoto(accessToken, id)
+				// .then((data) => {
+				// 	console.log(data)
+				// })
+				)
 			})
 			Promise.all(promises).then((data) => {
 				resolve(data)
@@ -18,7 +24,7 @@ function getPhotosLink (accessToken, size) {
 	})
 }
 
-function getPhotosID(accessToken, size) {
+function getPhotoIDs(accessToken, size) {
 	return new Promise((resolve, reject) => {
 		FB.options({accessToken: accessToken});
 		FB.api(
@@ -46,7 +52,6 @@ function getAPhoto(accessToken, id) {
 			id,
 			function (response) {
 				if (response && !response.error) {
-					console.log(response)
 					resolve(response.images[0].source);
 				} else {
 					reject(response.error);
@@ -81,7 +86,8 @@ function getPostsOfUser (accessToken, size) {
 exports.getPostsOfUser = getPostsOfUser;
 exports.getPhotosLink = getPhotosLink;
 
-// getPhotosLink("EAAZA3zZCpZCS0IBAOy2WUzawEwMcDbgQNQx9ojJkXIAJd4ymOwNyTZBOerTiqMTBuu3LBzTf3a9Gvayz8zbfSATxNDc4ZAvv97j1qZAGPWs8yH5H7X73w9dsn7UX0dxDI8S6Y1ZBqRZCbB0whgqHRAKjDbl7D92BZCpoZD", 10).then((data) => console.log(data));
-// getPhotosID("EAAZA3zZCpZCS0IBAOy2WUzawEwMcDbgQNQx9ojJkXIAJd4ymOwNyTZBOerTiqMTBuu3LBzTf3a9Gvayz8zbfSATxNDc4ZAvv97j1qZAGPWs8yH5H7X73w9dsn7UX0dxDI8S6Y1ZBqRZCbB0whgqHRAKjDbl7D92BZCpoZD", 10).then((data) => console.log(data));
-getAPhoto("EAACEdEose0cBAJAe6KCTJ0nL73NnDJhMXSk8ZCSZAE0RdemwQaOw4wIMZBWMIIoQy8vqdQthdVeUvzWH69lNkJZAZBHJkS7R86cP6eZCRZAB8lp72osQrxNEjBZCKA6ZA0omzpUwhVUphzvbdriLRkDEraNpKq3O9rRFMU1BMVaymIQZDZD", "10207063282373454").then((data) => console.log(data));
+
+// getPhotosLink(accessToken, 10).then((data) => console.log(data));
+// getPhotoIDs(accessToken, 10).then((data) => console.log(data));
+// getAPhoto(accessToken, "1054981821244385").then((data) => console.log(data));
 // getPosts(accessToken, 10).then((data) => console.log(data));
