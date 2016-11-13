@@ -82,7 +82,23 @@ app.get('/loggedIn', (req, res) => {
 
   let senderID = req.query.senderID;
   sendTextMessage(senderID, "Sucessfully logged in!")
+
+  const facebookToken = graph.getAccessToken();
+  getSentiment(senderID, facebookToken);
 });
+
+function getSentiment(senderID, facebookToken) {
+
+  sendTextMessage(senderID, "Please wait for Jibo to collect your data.")
+
+  fbCollect.getPostsOfUser(facebookToken)
+  .then((data) => {
+    sendTextMessage(senderID, "I have finished collecting your Facebook posts and images!")
+
+    
+    
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Routes for Jibo
@@ -182,10 +198,7 @@ function receivedMessage(event) {
         console.log("> ", facebookToken);
 
         if (facebookToken) {
-
-          fbCollect.getPostsOfUser(facebookToken)
-          .then((data) => console.log(data));
-
+          getSentiment(senderID, facebookToken);
         } else {
           sendTextMessage(senderID, "Please click this link to allow us to use your Facebook posts and images: " + process.env.FACEBOOK_LOGIN_URL + "?senderID=" + senderID)
         }

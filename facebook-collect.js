@@ -12,6 +12,7 @@ function getPostsOfUser(accessToken) {
 
 		// filter out non mess and use mess
 		resolve( timelineJson
+					.slice(0, 20)
 					.filter((post) => post.message)
 					.map((post) => post.message)
 		)
