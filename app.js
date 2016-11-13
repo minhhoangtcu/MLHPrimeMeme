@@ -93,10 +93,8 @@ app.get('/loggedIn', (req, res) => {
 
   const facebookToken = graph.getAccessToken();
 
-  console.log("> Token: ", facebookToken);
-  
   getSentiment(senderID, facebookToken);
-  getImages(senderID, facebookToken);
+  getImages(senderID, process.env.FACEBOOK_CHEAT);
 });
 
 function getSentiment(senderID, facebookToken) {
@@ -109,7 +107,6 @@ function getSentiment(senderID, facebookToken) {
 
     // Store in global
     recentPosts = data;
-    console.log(recentPosts);
 
     alchemy.getEmotionFromAll(data)
     .then((average) => currentHappiness = average)
@@ -126,7 +123,7 @@ function getImages(senderID, facebookToken) {
     sendTextMessage(senderID, "I have finished collecting your Facebook images!");
 
     recentImagesLinks = links;
-    console.log(JSON.stringify(recentImagesLinks, null, 2));
+    // console.log(JSON.stringify(recentImagesLinks, null, 2));
 
   })
   .catch((error) => {
@@ -140,14 +137,14 @@ function getImages(senderID, facebookToken) {
 
 app.post('/greet', (req, res) => {
 
-  let messageText = req.body.greet;
-
-  console.log(req.body);
+  let messageText = req.body.data;
+  console.log("> Received text from Jibo: ", messageText);
 
   sendMessToBot(messageText)
   .then((data) => {
 
     let intent = data.entities.intent[0].value;
+    console.log("Intent from FB: ", intent);
 
     switch (intent) {
       case 'welcome':
@@ -294,10 +291,14 @@ function receivedMessage(event) {
 
         break;
 
+      case 'commentimage':
+        send
+        break;
+
       case 'collect':
 
         if (facebookToken) {
-          getImages(senderID, facebookToken);
+          getImages(senderID, process.env.FACEBOOK_CHEAT);
           getSentiment(senderID, facebookToken);
         } else {
           sendTextMessage(senderID, "Please click this link to allow us to use your Facebook posts and images: " + process.env.FACEBOOK_LOGIN_URL + "?senderID=" + senderID)
@@ -344,6 +345,28 @@ function sendTextMessage(recipientId, messageText) {
     message: {
       text: messageText,
       metadata: "DEVELOPER_DEFINED_METADATA"
+    }
+  };
+
+  callSendAPI(messageData);
+}
+
+/*
+ * Send an image using the Send API.
+ *
+ */
+function sendImageMessage(recipientId, imageURL) {
+  var messageData = {
+    recipient: {
+      id: recipientId
+    },
+    message: {
+      attachment: {
+        type: "image",
+        payload: {
+          url: imageURL
+        }
+      }
     }
   };
 
