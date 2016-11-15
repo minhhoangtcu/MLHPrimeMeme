@@ -11,13 +11,13 @@ const
   request = require('request'),
   Wit = require('node-wit').Wit,
   log = require('node-wit').log,
-  speeches = require('./speeches.js'),
-  alchemy = require('./alchemy.js'),
-  emotion = require('./emotion.js'),
-  clarifai = require('./clarifai.js'),
-  graph = require('./facebook').graph,
-  fbCollect = require('./facebook-collect.js'),
-  jokes = require('./jokes.js');
+  speeches = require('./chat/speeches.js'),
+  alchemy = require('./processing_texts/alchemy.js'),
+  emotion = require('./processing_images/emotion.js'),
+  clarifai = require('./processing_images/clarifai.js'),
+  graph = require('./collect/facebook').graph,
+  fbCollect = require('./collect/facebook-collect.js'),
+  jokes = require('./chat/jokes.js');
 
 /*
  * Get the secret tokens/keys
@@ -84,8 +84,6 @@ function sendMessToBot(mess, context) {
 
 // ---------------------------------------------------------------------------
 // Facebook Collecting Code
-// FACEBOOK_CHEAT           = EAACEdEose0cBAAGBHkyjDvy1Bkv2MMmjaPghwif125tLChs5RrPml8Vg3t88VhuKZCAGQaL5mMZBvrcr1Ely6cMgjn61IoTxKhEr9LLBfXBGqOYXqZBZAFY9gHtCpCKyMLk604Jurg53Sop8v5Q7EBHlDZAkX0cRumjRx9J075wZDZD
-
 
 app.get('/loggedIn', (req, res) => {
   // serve an auto close page
