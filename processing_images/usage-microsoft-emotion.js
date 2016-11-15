@@ -1,6 +1,5 @@
 const ImageFaceEmotion = require('./microsoft-emotion.js');
 
-// insert keys
 var ifm = new ImageFaceEmotion('', '');
 
 // insert url
