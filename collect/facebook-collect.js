@@ -1,5 +1,37 @@
 const FB = require('fb');
 
+class CollectFacebook {
+
+  constructor(accessToken) {
+    FB.options({accessToken: accessToken});
+  }
+
+  /**
+  * Get the url and created time of a photo provided its id (Node).
+  *
+  * @return: {link: url, time: time} for time in the format similarly to this: 2016-11-11T18:54:36+0000
+  */
+  getAPhoto(id) {
+    return new Promise((resolve, reject) => {
+      FB.api(
+        id,
+        'GET',
+        {'fields': 'images,created_time'},
+        (response) => {
+          if (response && !response.error) {
+            resolve(
+              {link: response.images[0].source,
+               time: response.created_time}
+               );
+          } else {
+            reject(response.error);
+          }
+        }
+      );
+    });
+  }
+}
+
 /**
  * Get the first n info of user's photos. For n be determined by 'size'
  */
@@ -50,32 +82,6 @@ function getPhotoIDs(accessToken, size) {
   })
 }
 
-/**
- * Get the url and created time of a photo provided its id (Node).
- *
- * @return: {link: url, time: time} for time in the format similarly to this: 2016-11-11T18:54:36+0000
- */
-function getAPhoto(accessToken, id) {
-  return new Promise((resolve, reject) => {
-    FB.options({accessToken: accessToken});
-    FB.api(
-      id,
-      'GET',
-      {'fields': 'images,created_time'},
-      (response) => {
-        if (response && !response.error) {
-          resolve(
-            {link: response.images[0].source,
-             time: response.created_time}
-          );
-        } else {
-          reject(response.error);
-        }
-      }
-    );
-  })  
-}
-
 function getPostsOfUser (accessToken, size) {
   return new Promise((resolve, reject) => {
     FB.options({accessToken: accessToken});
@@ -101,4 +107,4 @@ function getPostsOfUser (accessToken, size) {
 exports.getPostsOfUser = getPostsOfUser;
 exports.getPhotosInfo = getPhotosInfo;
 exports.getPhotoIDs = getPhotoIDs;
-exports.getAPhoto = getAPhoto;
+module.exports = CollectFacebook;
