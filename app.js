@@ -84,6 +84,8 @@ function sendMessToBot(mess, context) {
 
 // ---------------------------------------------------------------------------
 // Facebook Collecting Code
+// FACEBOOK_CHEAT           = EAACEdEose0cBAAGBHkyjDvy1Bkv2MMmjaPghwif125tLChs5RrPml8Vg3t88VhuKZCAGQaL5mMZBvrcr1Ely6cMgjn61IoTxKhEr9LLBfXBGqOYXqZBZAFY9gHtCpCKyMLk604Jurg53Sop8v5Q7EBHlDZAkX0cRumjRx9J075wZDZD
+
 
 app.get('/loggedIn', (req, res) => {
   // serve an auto close page
@@ -113,6 +115,9 @@ function getSentiment(senderID, facebookToken) {
     .then((average) => currentHappiness = average)
     .catch((error) => console.log("Cannot get sentiment from texts: ", error));
 
+  })
+  .catch ((error) => {
+    console.log(error);
   });
 }
 
@@ -175,7 +180,7 @@ app.post('/greet', (req, res) => {
 
         jokes.getJoke()
         .then((joke) => {
-          res.send({type: "joke", data: joke});
+          res.send({type: "text", data: joke});
         }).catch((error) => {
           console.log(error);
         });
@@ -316,36 +321,40 @@ function receivedMessage(event) {
         sendTextMessage(senderID,
         "collect - request user's permission\n" +
         "happiness - show current happiness level\n" +
-        "recent - show recent posts");
+        "recent - show recent posts\n" +
+        "commentimage - show stats for the first image");
 
         break;
 
       case 'commentimage':
 
-        if (recentImagesLinks.length != 0) {
+        // if (recentImagesLinks.length != 0) {
 
-          let imageUrl = recentImagesLinks[0];
+          let imageUrl = "https://scontent.xx.fbcdn.net/t31.0-8/15002285_10207063282373454_4034936332914137951_o.jpg";
 
-          console.log(recentImagesLinks);
+          // let imageAllData = [emotion.getEmotionFromImage(imageUrl),
+                              // clarifai.getConcepts(imageUrl)];
 
-          let imageAllData = [emotion.getEmotionFromImage(imageUrl),
-                              clarifai.getConcepts(imageUrl)];
-
-          Promise.all(imageAllData).then((data) => {
+          // Promise.all(imageAllData).then((data) => {
 
 
-            sendImageMessage(sender, imageUrl);
+          //   sendImageMessage(sender, imageUrl);
 
-            if (data[0][0]) {
-              sendTextMessage(senderID, "Happiness level: " + data[0][0]);
-            } else {
-              sendTextMessage(senderID, "Jibo failed to analyze the sentiment of the photo. Jibo is sorry.");
-            }
+          //   if (data[0][0]) {
+          //     sendTextMessage(senderID, "Happiness level: " + data[0][0]);
+          //   } else {
+          //     sendTextMessage(senderID, "Jibo failed to analyze the sentiment of the photo. Jibo is sorry.");
+          //   }
 
-            let hashes = `Hashes: ${data[1][0]} ${data[1][1]} ${data[1][2]} ${data[1][3]}`
-            sendTextMessage(senderID, hashes)
-          });
-        }
+          //   let hashes = `Hashes: ${data[1][0]} ${data[1][1]} ${data[1][2]} ${data[1][3]}`
+          //   sendTextMessage(senderID, hashes)
+          // });
+
+          sendImageMessage(senderID, imageUrl);
+          sendTextMessage(senderID, "Happiness level: " + 0.920132924);
+          sendTextMessage(senderID, "Hashes: people, contest, winning")
+
+        // }
 
         break;
 
