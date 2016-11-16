@@ -1,7 +1,7 @@
 const CollectFacebook = require('./facebook-collect.js');
 
 // insert access token
-var collect = new CollectFacebook('');
+var collect = new CollectFacebook('EAACEdEose0cBAKXJTxVFuFu00wB0oQqSpEGBrYTi5Rf4u9GwAlw2Vi01m3p22oJ144VM0fNIBweRgHgEcgk3ZAfEFas4eLYvc6zxAZC1EN3TVwzlPK57xzZCRv8ZBVXO4FSypUdGFduqFn08SE2cpA7nrWCVv3QFOCBVSs0kgQZDZD');
 
 collect.getPhotosInfo(5)
   .then((result) => {

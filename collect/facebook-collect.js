@@ -82,6 +82,11 @@ class CollectFacebook {
     })
   }
 
+  /**
+   * Get the message and created date of many user posts. The function may not return the correct number of posts!
+   *
+   * @return: {message: text, time: time} for time in the format similarly to this: 2016-11-11T18:54:36+0000
+   */
   getPostsOfUser(size) {
     return new Promise((resolve, reject) => {
       FB.api(
@@ -94,8 +99,8 @@ class CollectFacebook {
           } else {
             resolve(
               response.posts.data
-                .filter( (post) => post.message)
-                .map((post) => post.message)
+                .filter((post) => post.message) // filter out post that has no message
+                .map( (post) => { return {'message': post.message, 'time': post.created_time} } )
             )
           }
         }
