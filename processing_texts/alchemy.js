@@ -19,6 +19,20 @@ class TextEmotion {
     });
   }
 
+  // output: {text: text, emotion: {anger:disgust:fear:joy:sadness}}
+  getEmotionObject(text) {
+    return new Promise((resolve, reject) => {
+      var parameters = {text}
+
+      this.alchemy_language.emotion(parameters, (err, response) => {
+        if (err)
+          reject(err);
+        else
+          resolve({text: text, emotiion: response.docEmotions});
+      });
+    });
+  }
+
   getAverageEmotionFromAll(arrayOfTexts) {
     return new Promise( (resolve, reject) => {
 
