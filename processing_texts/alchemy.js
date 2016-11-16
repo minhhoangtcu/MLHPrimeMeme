@@ -27,8 +27,16 @@ class TextEmotion {
       this.alchemy_language.emotion(parameters, (err, response) => {
         if (err)
           reject(err);
-        else
-          resolve({text: text, emotiion: response.docEmotions});
+        else {
+          let result = {};
+          result.text = text;
+
+          Object.keys(response.docEmotions).forEach((key) => {
+            result[key] = response.docEmotions[key];
+          });
+
+          resolve(result);
+        }
       });
     });
   }
