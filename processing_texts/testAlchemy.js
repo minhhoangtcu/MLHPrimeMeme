@@ -1,7 +1,7 @@
 const TextEmotion = require('./alchemy.js')
 
 // insert key here
-var te = new TextEmotion('784a43dd4fec280f893f6cb6222ca1ab3d2c9b25');
+var te = new TextEmotion('');
 
 te.getEmotion("Detected language of the source text (text with fewer than 15 characters is assumed to be English")
   .then((data) => {

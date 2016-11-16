@@ -18,6 +18,7 @@ const fbConfig = require("./routes/facebookConfig.js").facebookConfig;
 // Helper modules
 const speeches = require('./chat/speeches.js');
 const jokes = require('./chat/jokes.js');
+const csvGenerator = require('./collect/csv-generator.js');
 
 // Custom classes
 const TextEmotion = require('./processing_texts/alchemy.js');
@@ -109,37 +110,48 @@ function sendMessToBot(mess, context) {
 function getSentiment(senderID) {
 
   fbCollect.getPostsOfUser(10)
-  .then((data) => {
-    sendTextMessage(senderID, "I have finished collecting your Facebook posts!");
+    .then((data) => {
+      sendTextMessage(senderID, "I have finished collecting your Facebook posts!");
 
-    // Store back in global
-    recentPosts = data;
+      // Store back in global
+      recentPosts = data;
 
-    alchemy.getEmotionFromAll(data)
-      .then((average) => currentHappiness = average)
-      .catch((error) => console.log("Cannot get sentiment from texts: ", error));
+      alchemy.getAverageEmotionFromAll(data)
+        .then((average) => currentHappiness = average)
+        .catch((error) => console.log("Cannot get sentiment from texts: ", error));
 
-  })
-  .catch ((error) => {
-    console.log(error);
-  });
+    })
+    .catch ((error) => {
+      console.log(error);
+    });
 }
 
 function getImages(senderID) {
 
   // collect images
   fbCollect.getPhotosInfo(10)
-  .then((links) => {
-    sendTextMessage(senderID, "I have finished collecting your Facebook images!");
+    .then((links) => {
+      sendTextMessage(senderID, "I have finished collecting your Facebook images!");
+      recentImagesLinks = links;
+    })
+    .catch((error) => {
+      console.log(error);
+    });
 
-    recentImagesLinks = links;
-    console.log(JSON.stringify(recentImagesLinks, null, 2));
+}
 
-  })
-  .catch((error) => {
-    console.log(error);
-  });
+function getAllSentiment(senderID) {
 
+  fbCollect.getPostsOfUser(999)
+    .then((data) => {
+      sendTextMessage(senderID, "I have finished collecting ALL of your Facebook posts!");
+
+      alchemy
+
+    })
+    .catch ((error) => {
+      console.log(error);
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -290,7 +302,9 @@ function receivedMessage(event) {
 
       case 'collect':
 
-        if (!facebookToken) {
+        if (facebookToken) {
+          sendTextMessage(senderID, 'You have already given your permission to me.')
+        } else {
           sendTextMessage(senderID, `Please click this link to allow us to use your Facebook posts and images: ${fbConfig.redirect_url}?senderID=${senderID}`)
         }
 
