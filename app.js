@@ -1,32 +1,38 @@
 /* jshint node: true, devel: true */
 'use strict';
 
+// Imported modules
 require('dotenv').config();
+const bodyParser = require('body-parser');
+const crypto = require('crypto');
+const express = require('express');
+const https = require('https');
+const request = require('request');
+const Wit = require('node-wit').Wit;
+const log = require('node-wit').log;
 
-const 
-  bodyParser = require('body-parser'),
-  crypto = require('crypto'),
-  express = require('express'),
-  https = require('https'),  
-  request = require('request'),
-  Wit = require('node-wit').Wit,
-  log = require('node-wit').log,
-  speeches = require('./chat/speeches.js'),
-  alchemy = require('./processing_texts/alchemy.js'),
-  emotion = require('./processing_images/emotion.js'),
-  clarifai = require('./processing_images/clarifai.js'),
-  graph = require('./collect/facebook').graph,
-  fbCollect = require('./collect/facebook-collect.js'),
-  jokes = require('./chat/jokes.js');
+// Helpers
+const graph = require('./routes/facebook').graph;
+const fbConfig = require("./routes/facebookConfig.js").facebookConfig;
 
-/*
- * Get the secret tokens/keys
- */
+// Helper modules
+const speeches = require('./chat/speeches.js');
+const jokes = require('./chat/jokes.js');
+
+// Custom classes
+const TextEmotion = require('./processing_texts/alchemy.js');
+const ImageFaceEmotion = require('./processing_images/microsoft-emotion.js');
+const ImageHash = require('./processing_images/clarifai.js');
+const CollectFacebook = require('./collect/facebook-collect.js');
+
+// Secret tokens/keys
 const APP_SECRET = process.env.MESSENGER_APP_SECRET;
 const VALIDATION_TOKEN = process.env.MESSENGER_VALIDATION_TOKEN;
 const PAGE_ACCESS_TOKEN = process.env.MESSENGER_PAGE_ACCESS_TOKEN;
-const SERVER_URL = process.env.SERVER_URL;
 const WIT_TOKEN = process.env.WIT_SERVER_TOKEN;
+
+// Init custom classes
+var fbCollect = '';
 
 /*
  * Set up server
@@ -40,8 +46,22 @@ app.use(express.static('public'));
 /*
  * Set up routes
  */
-const facebookRoutes = require('./facebook').router;
+const facebookRoutes = require('./routes/facebook').router;
 app.use('/', facebookRoutes);
+
+app.get('/loggedIn', (req, res) => {
+  // serve an auto close page
+  res.send('Successfully Logged In!!!');
+
+  let senderID = req.query.senderID;
+  sendTextMessage(senderID, "Sucessfully logged in!")
+
+  const facebookToken = graph.getAccessToken();
+  fbCollect = new CollectFacebook(facebookToken); // make this global
+
+  getSentiment(senderID);
+  getImages(senderID);
+});
 
 /* 
  * Container variables
@@ -85,33 +105,19 @@ function sendMessToBot(mess, context) {
 // ---------------------------------------------------------------------------
 // Facebook Collecting Code
 
-app.get('/loggedIn', (req, res) => {
-  // serve an auto close page
-  res.send('Successfully Logged In!!!');
+// Collect user's status updates and store back in global
+function getSentiment(senderID) {
 
-  let senderID = req.query.senderID;
-  sendTextMessage(senderID, "Sucessfully logged in!")
-
-  const facebookToken = graph.getAccessToken();
-
-  getSentiment(senderID, facebookToken);
-  getImages(senderID, process.env.FACEBOOK_CHEAT);
-});
-
-function getSentiment(senderID, facebookToken) {
-
-  sendTextMessage(senderID, "Please wait for Jibo to collect your data.");
-
-  fbCollect.getPostsOfUser(facebookToken, 5)
+  fbCollect.getPostsOfUser(10)
   .then((data) => {
     sendTextMessage(senderID, "I have finished collecting your Facebook posts!");
 
-    // Store in global
+    // Store back in global
     recentPosts = data;
 
     alchemy.getEmotionFromAll(data)
-    .then((average) => currentHappiness = average)
-    .catch((error) => console.log("Cannot get sentiment from texts: ", error));
+      .then((average) => currentHappiness = average)
+      .catch((error) => console.log("Cannot get sentiment from texts: ", error));
 
   })
   .catch ((error) => {
@@ -119,10 +125,10 @@ function getSentiment(senderID, facebookToken) {
   });
 }
 
-function getImages(senderID, facebookToken) {
+function getImages(senderID) {
 
   // collect images
-  fbCollect.getPhotosLink(facebookToken, 10)
+  fbCollect.getPhotosInfo(10)
   .then((links) => {
     sendTextMessage(senderID, "I have finished collecting your Facebook images!");
 
@@ -135,81 +141,6 @@ function getImages(senderID, facebookToken) {
   });
 
 }
-
-// ---------------------------------------------------------------------------
-// Routes for Jibo
-
-app.post('/greet', (req, res) => {
-
-  let messageText = req.body.data;
-  console.log("> Received text from Jibo: ", messageText);
-
-  sendMessToBot(messageText)
-  .then((data) => {
-
-    let intent = "";
-    if (data.entities.intent) {
-      intent = data.entities.intent[0].value;
-      console.log("Intent from FB: ", intent);
-    } else {
-      console.log("No intent from: ", messageText);
-    }
-
-    switch (intent) {
-      case 'welcome':
-        // get concepts to prepare for response
-        clarifai.getConcepts();
-
-        console.log("> send welcome");
-
-        // response
-        if (currentHappiness != 0 && currentHappiness < 0.4) {
-          res.send({type: "text", data: speeches.getRandomCheer(0)});
-        } else if (currentHappiness != 0) {
-          res.send({type: "text", data: speeches.getRandomCelebration(0)});
-        } else {
-          res.send({type: "text", data: "Welcome home!"});
-        }
-        break;
-
-      case 'joke':
-
-        console.log("> send joke");
-
-        jokes.getJoke()
-        .then((joke) => {
-          res.send({type: "text", data: joke});
-        }).catch((error) => {
-          console.log(error);
-        });
-
-        break;
-
-      case 'image':
-
-        console.log("> send image");
-
-        let imageAllData = [emotion.getEmotionFromImage(recentAttachment),
-                            clarifai.getConcepts(recentAttachment)];
-
-        Promise.all(imageAllData).then((data) => {
-          let saying = "Good luck in your " + data[1][0];
-          res.send({type: "text", data: saying});
-        });
-
-        break;
-
-      default:
-        res.send({type: "error"});
-    }
-
-    res.status(200)
-  })
-  .catch((error) =>{
-    console.log(error);
-  });
-
-})
 
 // ---------------------------------------------------------------------------
 // Messenger Code
@@ -312,6 +243,7 @@ function receivedMessage(event) {
           }, 500);
 
         }
+
         break;
 
       case 'help':
@@ -359,10 +291,10 @@ function receivedMessage(event) {
       case 'collect':
 
         if (facebookToken) {
-          getImages(senderID, process.env.FACEBOOK_CHEAT);
+          getImages(senderID, facebookToken);
           getSentiment(senderID, facebookToken);
         } else {
-          sendTextMessage(senderID, "Please click this link to allow us to use your Facebook posts and images: " + process.env.FACEBOOK_LOGIN_URL + "?senderID=" + senderID)
+          sendTextMessage(senderID, `Please click this link to allow us to use your Facebook posts and images: ${fbConfig.redirect_url}?senderID=${senderID}`)
         }
 
         break;
@@ -371,14 +303,18 @@ function receivedMessage(event) {
 
       	sendMessToBot(messageText)
       	.then((data) => {
-      		let intent = data.entities.intent[0].value;
-      		console.log(JSON.stringify(data, null, 2));
+
+          // echo back if found no intent
+          if (Object.keys(data.entities).length != 0) {
+            let intent = data.entities.intent[0].value;
+          } else {
+            sendTextMessage(senderID, 'I do not understand what you are trying to say. Please type "help" to see what I can do.');
+          }
+
       	})
       	.catch((error) =>{
       		console.log(error);
       	});
-
-        sendTextMessage(senderID, messageText); // echo back
     }
   } else if (messageAttachments) {
 
@@ -502,7 +438,6 @@ function verifyRequestSignature(req, res, buf) {
  	console.log("App secret: ", APP_SECRET);
  	console.log("Validation token: ", VALIDATION_TOKEN);
  	console.log("Page access token: ", PAGE_ACCESS_TOKEN);
- 	console.log("Server URL: ", SERVER_URL);
  }
 
 // Start server
