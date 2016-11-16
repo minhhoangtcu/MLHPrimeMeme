@@ -290,10 +290,7 @@ function receivedMessage(event) {
 
       case 'collect':
 
-        if (facebookToken) {
-          getImages(senderID, facebookToken);
-          getSentiment(senderID, facebookToken);
-        } else {
+        if (!facebookToken) {
           sendTextMessage(senderID, `Please click this link to allow us to use your Facebook posts and images: ${fbConfig.redirect_url}?senderID=${senderID}`)
         }
 
