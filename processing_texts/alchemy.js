@@ -12,24 +12,28 @@ class TextEmotion {
 
       this.alchemy_language.emotion(parameters, (err, response) => {
         if (err)
-          reject(err);
+          resolve(); // ignore the error for now. Basically, we are passing back undefined
+          // reject(JSON.stringify(err, null, 2));
         else
           resolve(response.docEmotions);
       });
     });
   }
 
-  // output: {text: text, emotion: {anger:disgust:fear:joy:sadness}}
-  getEmotionObject(text) {
+  // input  : {message: text, time: time}
+  // output : {text:time:anger:disgust:fear:joy:sadness}
+  getEmotionObject(facebookPost) {
     return new Promise((resolve, reject) => {
-      var parameters = {text}
+      const text = facebookPost.message;
+      var parameters = {text};
 
       this.alchemy_language.emotion(parameters, (err, response) => {
         if (err)
-          reject(err);
+          resolve(); // ignore the error for now. Basically, we are passing back undefined
         else {
           let result = {};
           result.text = text;
+          result.time = facebookPost.time;
 
           Object.keys(response.docEmotions).forEach((key) => {
             result[key] = response.docEmotions[key];
@@ -41,7 +45,7 @@ class TextEmotion {
     });
   }
 
-  getAverageEmotionFromAll(arrayOfTexts) {
+  getEmotionFromAll(arrayOfTexts) {
     return new Promise( (resolve, reject) => {
 
       var sentiments = [];
@@ -63,7 +67,7 @@ class TextEmotion {
     });
   }
 
-  getEmotionFromAll(arrayOfTexts) {
+  getAverageEmotionFromAll(arrayOfTexts) {
     return new Promise( (resolve, reject) => {
 
       var sentiments = [];
@@ -76,6 +80,7 @@ class TextEmotion {
         .all(sentiments) // after this we get an array of JSON
         .then((data) => {
           let sum = data
+                      .filter((sentiment) => sentiment) // if not null
                       .map((sentiment) => sentiment.joy)
                       .reduce((acc, cur) => parseFloat(acc) + parseFloat(cur));
 

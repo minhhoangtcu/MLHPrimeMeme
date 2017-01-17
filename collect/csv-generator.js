@@ -22,6 +22,4 @@ function generateCSV(fileName, data) {
   });
 }
 
-// Usage
-// Must input an array of dictionary.
-generateCSV('test', [{a: 1, b: 2}, {a: 5, b: 23}]);
+exports.generateCSV = generateCSV;

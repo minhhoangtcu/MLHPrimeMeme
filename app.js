@@ -31,9 +31,17 @@ const APP_SECRET = process.env.MESSENGER_APP_SECRET;
 const VALIDATION_TOKEN = process.env.MESSENGER_VALIDATION_TOKEN;
 const PAGE_ACCESS_TOKEN = process.env.MESSENGER_PAGE_ACCESS_TOKEN;
 const WIT_TOKEN = process.env.WIT_SERVER_TOKEN;
+const WATSON_KEY = process.env.WATSON_KEY;
+const RAPID_API_TOKEN = process.env.RAPID_API_TOKEN;
+const MICROSOFT_EMOTION_KEY = process.env.MICROSOFT_EMOTION_KEY;
+const CLARIFAI_CLIENT_ID = process.env.CLARIFAI_CLIENT_ID;
+const CLARIFAI_CLIENT_SECRET = process.env.CLARIFAI_CLIENT_SECRET;
 
 // Init custom classes
 var fbCollect = '';
+var alchemy = new TextEmotion(WATSON_KEY);
+var emotionImage = new ImageFaceEmotion(RAPID_API_TOKEN, MICROSOFT_EMOTION_KEY);
+var clarifai = new ImageHash(CLARIFAI_CLIENT_ID, CLARIFAI_CLIENT_SECRET);
 
 /*
  * Set up server
@@ -62,6 +70,7 @@ app.get('/loggedIn', (req, res) => {
 
   getSentiment(senderID);
   getImages(senderID);
+  getAllSentiment(senderID);
 });
 
 /* 
@@ -99,7 +108,7 @@ const wit = new Wit({
  * - context: previous context. JSON object.
  */
 function sendMessToBot(mess, context) {
-	console.log("SEND BOT: ", mess);
+	console.log("Send to Wit.ai: ", mess);
 	return wit.message(mess, context)
 }
 
@@ -112,6 +121,8 @@ function getSentiment(senderID) {
   fbCollect.getPostsOfUser(10)
     .then((data) => {
       sendTextMessage(senderID, "I have finished collecting your Facebook posts!");
+
+      data = data.map((post) => post.message);
 
       // Store back in global
       recentPosts = data;
@@ -144,10 +155,24 @@ function getAllSentiment(senderID) {
 
   fbCollect.getPostsOfUser(999)
     .then((data) => {
+      // data will be [{message: text, time: time}]
       sendTextMessage(senderID, "I have finished collecting ALL of your Facebook posts!");
 
-      alchemy
+      var sentiments = [];
 
+      data.forEach((post) => {
+        sentiments.push(alchemy.getEmotionObject(post));
+      });
+
+      Promise
+        .all(sentiments)
+        .then((emotions) => {
+          // data is now an array of [{text:time:anger:disgust:fear:joy:sadness}]
+          csvGenerator.generateCSV('text-sentiment', emotions);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
     })
     .catch ((error) => {
       console.log(error);
@@ -207,9 +232,9 @@ function receivedMessage(event) {
     return;
   }
 
-  console.log("Received message for user %d and page %d at %d with message:", 
-    senderID, recipientID, timeOfMessage);
-  console.log(JSON.stringify(message));
+  // console.log("Received message for user %d and page %d at %d with message:", senderID, recipientID, timeOfMessage);
+  // console.log(JSON.stringify(message));
+  console.log(`Received mess from ${senderID}: "${message.text}"`);
 
   var messageId = message.mid;
   var appId = message.app_id;
@@ -270,45 +295,49 @@ function receivedMessage(event) {
 
       case 'commentimage':
 
-        // if (recentImagesLinks.length != 0) {
+        if (recentImagesLinks.length != 0) {
 
-          let imageUrl = "https://scontent.xx.fbcdn.net/t31.0-8/15002285_10207063282373454_4034936332914137951_o.jpg";
+          let imageUrl = recentImagesLinks[0];
 
-          // let imageAllData = [emotion.getEmotionFromImage(imageUrl),
-                              // clarifai.getConcepts(imageUrl)];
+          let imageAllData = [emotionImage.getEmotionFromImage(imageUrl),
+                              clarifai.getConcepts(imageUrl)];
 
-          // Promise.all(imageAllData).then((data) => {
+          Promise.all(imageAllData).then((data) => {
 
 
-          //   sendImageMessage(sender, imageUrl);
+            sendImageMessage(sender, imageUrl);
 
-          //   if (data[0][0]) {
-          //     sendTextMessage(senderID, "Happiness level: " + data[0][0]);
-          //   } else {
-          //     sendTextMessage(senderID, "Jibo failed to analyze the sentiment of the photo. Jibo is sorry.");
-          //   }
+            if (data[0][0]) {
+              sendTextMessage(senderID, "Happiness level: " + data[0][0]);
+            } else {
+              sendTextMessage(senderID, "Cannot analyze the sentiment of provided image.");
+            }
 
-          //   let hashes = `Hashes: ${data[1][0]} ${data[1][1]} ${data[1][2]} ${data[1][3]}`
-          //   sendTextMessage(senderID, hashes)
-          // });
+            let hashes = `Hashes: ${data[1][0]} ${data[1][1]} ${data[1][2]} ${data[1][3]}`
+            sendTextMessage(senderID, hashes)
+          });
 
           sendImageMessage(senderID, imageUrl);
-          sendTextMessage(senderID, "Happiness level: " + 0.920132924);
-          sendTextMessage(senderID, "Hashes: people, contest, winning")
 
-        // }
+        }
 
         break;
 
-      case 'collect':
+      case 'hi':
 
         if (facebookToken) {
           sendTextMessage(senderID, 'You have already given your permission to me.')
         } else {
-          sendTextMessage(senderID, `Please click this link to allow us to use your Facebook posts and images: ${fbConfig.redirect_url}?senderID=${senderID}`)
+          sendTextMessage(senderID, `Hello Minh. I am Feely Bot. Please click this link to allow me to monitor your emotional health: ${fbConfig.redirect_url}?senderID=${senderID}`)
         }
 
         break;
+
+      case 'force update':
+
+        sendTextMessage(senderID, `Minh, are you ok?`);
+
+      break;
 
       default:
 
@@ -318,7 +347,9 @@ function receivedMessage(event) {
           // echo back if found no intent
           if (Object.keys(data.entities).length != 0) {
             let intent = data.entities.intent[0].value;
+            console.log(`Received mess from Wit.ai. Found intent: ${intent}. No reply.`);
           } else {
+            console.log('Received mess from Wit.ai. Found no intent');
             sendTextMessage(senderID, 'I do not understand what you are trying to say. Please type "help" to see what I can do.');
           }
 
@@ -331,14 +362,10 @@ function receivedMessage(event) {
 
   	let imageUrl = messageAttachments[0]['payload']['url'];
     recentAttachment = imageUrl;
-  	let imageAllData = [emotion.getEmotionFromImage(imageUrl),
-  						clarifai.getConcepts(imageUrl)];
-
-  	Promise.all(imageAllData).then((data) => {
-  		console.log("Good luck in your " + data[1][0]);
-      sendTextMessage(senderID, "I got your image!")
-  	});
-
+    clarifai.getConcepts(imageUrl)
+      .then((data) => {
+        sendTextMessage(senderID, `Beautiful ${data[0]}!`);
+      });
   }
 }
 
@@ -400,11 +427,9 @@ function callSendAPI(messageData) {
       var messageId = body.message_id;
 
       if (messageId) {
-        console.log("Successfully sent message with id %s to recipient %s", 
-          messageId, recipientId);
+        console.log("Successfully sent message with id %s to recipient %s", messageId, recipientId);
       } else {
-      console.log("Successfully called Send API for recipient %s", 
-        recipientId);
+        console.log("Successfully called Send API for recipient %s", recipientId);
       }
     } else {
       console.error("Failed calling Send API", response.statusCode, response.statusMessage, body.error);
